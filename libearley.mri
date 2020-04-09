@@ -1,0 +1,5 @@
+create libearley.a
+addlib libbgc.a
+addlib earley.a
+save
+end
