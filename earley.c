@@ -1,74 +1,100 @@
 #include "earley.h"
 #include <limits.h>
 
-#define GCALLOC(type, ptrs) ((struct type *)gcalloc(sizeof(struct type), 2))
-
-static struct earley_symbol *make_terminal(const char *match)
+static struct symbol *make_terminal(const char *match)
 {
-  struct earley_symbol *symbol;
+  struct symbol *symbol;
 
-  symbol = GCALLOC(earley_symbol, 2);
+  symbol = GCALLOC(symbol, 2);
   symbol->type = TERMINAL;
   symbol->value = match;
+  symbol->next = NULL;
 
   return symbol;
 }
 
-static struct earley_symbol *make_nonterminal(const char *name)
+static struct symbol *make_nonterminal(const char *name)
 {
-  struct earley_symbol *symbol;
+  struct symbol *symbol;
 
-  symbol = GCALLOC(earley_symbol, 2);
+  symbol = GCALLOC(symbol, 2);
   symbol->type = NON_TERMINAL;
   symbol->value = name;
+  symbol->next = NULL;
 
   return symbol;
 }
 
-static struct earley_rule *make_rule(const char *name)
+static struct rule *make_rule(const char *name)
 {
-  struct earley_rule *rule;
+  struct rule *rule;
 
-  rule = GCALLOC(earley_rule, 2);
+  rule = GCALLOC(rule, 3);
   rule->name = name;
+  rule->next = NULL;
+  rule->symbols = NULL;
 
   return rule;
 }
 
-static void cons_symbol(struct earley_symbol *symbol, struct earley_rule *rule)
+static struct item *make_item(struct rule *rule, size_t start)
 {
-  symbol->next = rule->symbols;
-  rule->symbols = symbol;
-}
+  struct item *item;
 
-static struct earley_item *make_item(struct earley_rule *rule, size_t start, size_t progess)
-{
-  struct earley_item *item;
-
-  item = GCALLOC(earley_item, 2);
+  item = GCALLOC(item, 2);
   item->rule = rule;
   item->start = start;
-  item->progress = progess;
+  item->next = NULL;
 
   return item;
 }
 
-static void cons_item(struct earley_item *head, struct earley_item *tail)
+static struct state *make_state(struct item *items)
 {
-  head->next = tail;
-}
+  struct state *state;
 
-static struct earley_state *make_state(struct earley_item *items)
-{
-  struct earley_state *state;
-
-  state = GCALLOC(earley_state, 2);
+  state = GCALLOC(state, 2);
   state->items = items;
+  state->next = NULL;
 
   return state;
 }
 
-static void state_cons(struct earley_state *head, struct earley_state *tail)
+static struct rule *rules_by_name(const char *name, struct rule *rule)
 {
-  head->next = tail;
+  if (rule == NULL) {
+    return rule;
+  }
+
+  if (strcmp(name, rule->name) == 0) {
+    struct rule *new = make_rule(rule->name);
+    new->next = rules_by_name(name, new->next);
+    return new;
+  } else {
+    return rules_by_name(name, rule->next);
+  }
 }
+
+static struct item *items_of_rules(struct rule *rule, int start)
+{ 
+  if (rule == NULL) {
+    return rule;
+  }
+
+  struct item *item = make_item(rule, start);
+  item->next = items_of_rules(item->next, start);
+  return item;
+}
+
+static struct state *init(const char *first, struct rule *rules)
+{
+  struct rule *rules = rules_by_name(first, rules);
+  struct item *items = items_of_rules(rules, 0);
+  struct state *state = make_state(items);
+
+  return state;
+}
+
+static void item_loop();
+
+static void state_loop();
