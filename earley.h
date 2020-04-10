@@ -7,35 +7,34 @@ enum symbol_type
   NON_TERMINAL
 };
 
-union symbol_value {
-  struct
-  {
-    const char *match;
-  };
-  struct
-  {
-    struct earley_symbol *symbols;
-    char length;
-  };
-};
-
+// TERMINAL | NONTERMINAL
 struct earley_symbol
 {
-  union symbol_value *value;
+  struct earley_symbol *next;
+  const char *value;
   enum symbol_type type;
 };
 
-struct earley_symbol *make_symbol(
-    enum symbol_type type,
-    union symbol_value value);
-
+// NAME := NONTERMINAL TERMINAL NONTERMINAL
 struct earley_rule
 {
-  struct earley_symbol *symbols;
+  struct earley_symbol *symbols; // SYMBOL[]
   const char *name;
 };
 
+// NAME := NONTERMINAL TERMINAL * NONTERMINAL
 struct earley_item
 {
-  struct earley_rule rule;
+  struct earley_item *next;
+  struct earley_rule *rule; // RULE
+  size_t progress;
+  size_t start;
+};
+
+#define SKIPLIST_MAX_LEVEL 6
+
+struct earley_state
+{
+  struct earley_state *next;
+  struct earley_item *items; // ITEM[]
 };

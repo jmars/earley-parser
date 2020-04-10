@@ -1,4 +1,4 @@
-test: libbgc.a test.c libearley.a earley.h
+test: test.c libearley.a earley.h
 	$(CC) -g test.c libearley.a -o test
 
 libbgc.a:
